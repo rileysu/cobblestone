@@ -1,6 +1,6 @@
 use codec_derive::Codec;
 use codec::{Codec, Result, Error, ErrorKind};
-use crate::codec::base::*;
+use crate::data::base::*;
 use std::io::{Seek, Read, Write};
 
 #[derive(Debug)]

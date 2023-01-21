@@ -1,13 +1,11 @@
 use std::io::Cursor;
 
 use codec::Codec;
-use serde_json::json;
-use crate::codec::base::{PacketLong, Uuid, LengthPrefixArray, PacketOption};
-use crate::codec::packets::handshaking::*;
-use crate::codec::packets::login::{InboundLogin, OutboundLogin, LoginSuccess, LoginSuccessProperty};
-use crate::codec::packets::play::Login;
-use crate::codec::packets::status::*;
-use crate::codec::base::{VarInt, PacketString};
+use crate::data::packets::handshaking::*;
+use crate::data::packets::login::{InboundLogin};
+use crate::data::packets::play::{InboundPlay};
+use crate::data::packets::status::*;
+use crate::data::base::{VarInt};
 use crate::boundary::message::{OutboundMessage, InboundMessage};
 
 #[derive(Debug)]
@@ -32,9 +30,8 @@ impl RecieverProcessor {
         }
     }
 
-    pub fn process(&mut self, data: &[u8]) -> Vec<InboundMessage> {
+    pub fn process(&mut self, data: &[u8]) -> Option<InboundMessage> {
         let mut buf = Cursor::new(data);
-        let mut out: Vec<InboundMessage> = Vec::new(); 
 
         match self.state {
             State::Handshaking => {
@@ -49,39 +46,19 @@ impl RecieverProcessor {
                         }
                     },
                 };
+
+                None
             },
             State::Status => {
-                let state_packet = InboundStatus::decode(&mut buf).unwrap();
-
-                match &state_packet {
-                    InboundStatus::StatusRequest(packet) => out.push(InboundMessage::ServerInformationRequest),
-                    InboundStatus::PingRequest(packet) => out.push(InboundMessage::PingRequest { 
-                            payload: packet.payload.0 
-                        }
-                    ),
-                };
+                Some(InboundMessage::Status(InboundStatus::decode(&mut buf).unwrap()))
             },
             State::Login => {
-                let state_packet = InboundLogin::decode(&mut buf).unwrap();
-
-                match &state_packet {
-                    InboundLogin::LoginStart(packet) => {
-                        out.push(InboundMessage::LoginStart { username: packet.username.0.clone(), uuid: packet.player_uuid.0 })
-                    },
-                    InboundLogin::EncryptionResponse(packet) => {
-                        
-                    },
-                    InboundLogin::LoginPluginResponse(packet) => {
-                        
-                    },
-                }
+                Some(InboundMessage::Login(InboundLogin::decode(&mut buf).unwrap()))
             },
             State::Play => {
-                todo!()
+                Some(InboundMessage::Play(InboundPlay::decode(&mut buf).unwrap()))
             }
         }
-
-        out
     }
 }
 
@@ -94,73 +71,10 @@ impl SenderProcessor {
         let mut buf: Cursor<Vec<u8>> = Cursor::new(Vec::new());
 
         match message {
-            OutboundMessage::ServerInformationResponse { 
-                version_name, 
-                version_protocol, 
-                players_max, 
-                players_online, 
-                sample, 
-                description_text, 
-                favicon, 
-                previews_chat, 
-                enforce_secure_chat } => {
-                    let mat_json = json!({
-                        "version": {
-                            "name": version_name,
-                            "protocol": version_protocol
-                        },
-                        "players": {
-                            "max": players_max,
-                            "online": players_online,
-                            "sample": []
-                        },
-                        "description": {
-                            "text": description_text
-                        },
-                        "favicon": favicon,
-                        "previewsChat": previews_chat,
-                        "enforcesSecureChat": enforce_secure_chat,
-                    });
-
-                    let packet = OutboundStatus::StatusResponse(StatusResponse {
-                        json_response: PacketString(mat_json.to_string()),
-                    });
-
-                    packet.encode(&mut buf).unwrap();
-            },
-            OutboundMessage::PingResponse { 
-                payload 
-            } => {
-                let packet = OutboundStatus::PingResponse(PingResponse { 
-                    payload: PacketLong(*payload) 
-                });
-
-                packet.encode(&mut buf).unwrap();
-            }
-            OutboundMessage::LoginSuccess { 
-                username, 
-                uuid, 
-                properties 
-            } => {
-                let packet = OutboundLogin::LoginSuccess(LoginSuccess {
-                    uuid: Uuid(*uuid),
-                    username: PacketString(username.clone()),
-                    properties: LengthPrefixArray(properties.iter().map({ |property|
-                        LoginSuccessProperty {
-                            name: PacketString(property.name.clone()),
-                            value: PacketString(property.value.clone()),
-                            signature: match &property.signature {
-                                Some(value) => PacketOption::Some(PacketString(value.clone())),
-                                None => PacketOption::None,
-                            },
-                        }
-                    }).collect()),
-                });
-
-                packet.encode(&mut buf).unwrap();
-            },
-            OutboundMessage::Login { entity_id, is_hardcore, gamemode, previous_gamemode, dimension_names } => {},
-        };
+            OutboundMessage::Status(status_message) => status_message.encode(&mut buf).unwrap(),
+            OutboundMessage::Login(login_message) => login_message.encode(&mut buf).unwrap(),
+            OutboundMessage::Play(play_message) => play_message.encode(&mut buf).unwrap(),
+        }
 
         buf.into_inner()
     }

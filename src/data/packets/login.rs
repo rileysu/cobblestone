@@ -1,7 +1,7 @@
 use codec_derive::Codec;
 use codec::{Codec, Result, Error, ErrorKind};
 use std::io::{Cursor, Read, Seek, Write};
-use crate::codec::base::*;
+use crate::data::base::*;
 
 #[derive(Debug)]
 pub enum InboundLogin {

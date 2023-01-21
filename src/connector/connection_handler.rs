@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
-use tokio::net::{TcpStream, TcpListener};
-use tokio::io::{AsyncReadExt, AsyncWriteExt, BufReader, BufWriter};
+use tokio::net::{TcpListener};
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::io::{Error, ErrorKind};
 use tokio::runtime::Runtime;
 use crate::boundary::BoundaryFactory;
@@ -99,9 +99,11 @@ async fn handle_reciever(mut reader: OwnedReadHalf, boundary: RecieverConnection
             _ => {},
         };
 
-        let messages = processor.process(&buf);
+        let optional_message = processor.process(&buf);
 
-        messages.into_iter().for_each(|message| boundary.send_message(message).unwrap());
+        if let Some(message) = optional_message {
+            boundary.send_message(message).unwrap();
+        }
     }
 }
 
