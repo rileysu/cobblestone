@@ -57,7 +57,6 @@ version = "0.1.0"
 dependencies = [
  "byteorder",
  "cfb8",
- "codec",
  "codec_derive",
  "pin-project-lite",
  "serde",
@@ -66,14 +65,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "codec"
-version = "0.1.0"
-
-[[package]]
 name = "codec_derive"
 version = "0.1.0"
 dependencies = [
- "codec",
  "quote",
  "syn",
 ]

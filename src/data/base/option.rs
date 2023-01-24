@@ -1,28 +1,21 @@
-use codec::{Codec, Result};
+use crate::data::codec::{Codec, Result};
 use std::io::{Read, Seek, Write};
-use super::PacketBool;
 
-#[derive(Debug, PartialEq)]
-pub enum PacketOption<T: Codec> {
-    Some(T),
-    None,
-}
-
-impl<T: Codec> Codec for PacketOption<T> {
+impl<T: Codec> Codec for Option<T> {
     fn decode(buf: &mut (impl Read + Seek)) -> Result<Self> {
-        Ok(match PacketBool::decode(buf)?.into() {
-            true => PacketOption::Some(T::decode(buf)?),
-            false => PacketOption::None,
+        Ok(match bool::decode(buf)? {
+            true => Some(T::decode(buf)?),
+            false => None,
         })
     }
 
     fn encode(&self, buf: &mut impl Write) -> Result<()> {
         match self {
-            PacketOption::Some(value) => {
-                PacketBool::encode(&false.into(), buf)?;
+            Some(value) => {
+                bool::encode(&false, buf)?;
                 value.encode(buf)?;
             }
-            PacketOption::None => PacketBool::encode(&false.into(), buf)?,
+            None => bool::encode(&false, buf)?,
         }
 
         Ok(())

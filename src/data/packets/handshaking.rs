@@ -1,5 +1,6 @@
 use codec_derive::Codec;
-use codec::{Codec, Result, Error, ErrorKind};
+use crate::data::codec;
+use crate::data::codec::{Codec, Result, Error, ErrorKind};
 use std::io::{Read, Seek, Write};
 use crate::data::base::*;
 
@@ -31,8 +32,8 @@ pub struct OutboundHandshaking;
 #[derive(Debug, Codec)]
 pub struct Handshake {
     pub protocol_version: VarInt,
-    pub server_address: PacketString,
-    pub server_port: PacketUShort,
+    pub server_address: String,
+    pub server_port: u16,
     pub next_state: VarInt,
 }
 

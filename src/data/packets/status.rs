@@ -1,5 +1,6 @@
 use codec_derive::Codec;
-use codec::{Codec, Result, Error, ErrorKind};
+use crate::data::codec;
+use crate::data::codec::{Codec, Result, Error, ErrorKind};
 use crate::data::base::*;
 use std::io::{Seek, Read, Write};
 
@@ -61,15 +62,15 @@ pub struct StatusRequest;
 
 #[derive(Debug, Codec)]
 pub struct PingRequest {
-    pub payload: PacketLong,
+    pub payload: i64,
 }
 
 #[derive(Debug, Codec)]
 pub struct StatusResponse {
-    pub json_response: PacketString,
+    pub json_response: String,
 }
 
 #[derive(Debug, Codec)]
 pub struct PingResponse {
-    pub payload: PacketLong,
+    pub payload: i64,
 }

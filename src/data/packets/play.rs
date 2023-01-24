@@ -1,15 +1,24 @@
 use codec_derive::Codec;
-use codec::{Codec, Result, Error, ErrorKind};
+use crate::data::codec;
+use crate::data::codec::{Codec, Result, Error, ErrorKind};
 use crate::data::base::*;
 use std::io::{Seek, Read, Write};
 
 #[derive(Debug)]
 pub enum InboundPlay {
+    ClientInformation(ClientInformation),
 }
 
 impl Codec for InboundPlay {
     fn decode(buf: &mut (impl Read + Seek)) -> Result<Self> {
-        todo!()
+        let VarInt(id) = VarInt::decode(buf)?;
+
+        match id {
+            0x07 => Ok(InboundPlay::ClientInformation(
+                ClientInformation::decode(buf)?
+            )),
+            _ => Err(Error::from(ErrorKind::InvalidData)),
+        }
     }
 
     fn encode(&self, buf: &mut impl Write) -> Result<()> {
@@ -19,6 +28,7 @@ impl Codec for InboundPlay {
 
 #[derive(Debug)]
 pub enum OutboundPlay {
+    PluginMessage(PluginMessage),
     Login(Login),
 }
 
@@ -29,6 +39,10 @@ impl Codec for OutboundPlay {
 
     fn encode(&self, buf: &mut impl Write) -> Result<()> {
         match self {
+            OutboundPlay::PluginMessage(plugin_message) => {
+                VarInt::encode(&VarInt(0x15), buf)?;
+                plugin_message.encode(buf)?;
+            }
             OutboundPlay::Login(login) => {
                 VarInt::encode(&VarInt(0x24), buf)?;
                 login.encode(buf)?;
@@ -40,24 +54,42 @@ impl Codec for OutboundPlay {
 }
 
 #[derive(Debug, Codec)]
+pub struct PluginMessage {
+    pub channel: Identifier,
+    pub data: ConsumingByteArray,
+}
+
+#[derive(Debug, Codec)]
 pub struct Login {
-    entity_id: PacketInt,
-    is_hardcore: PacketBool,
-    gamemode: PacketUByte,
-    previous_gamemode: PacketUByte,
-    dimension_names: LengthPrefixArray<PacketString>,
-    registry_codec: NBTValue,
-    dimension_type: Identifier,
-    dimension_name: Identifier,
-    hashed_seed: PacketLong,
-    max_players: VarInt,
-    view_distance: VarInt,
-    simulation_distance: VarInt,
-    reduced_debug_info: PacketBool,
-    enabled_respawn_screen: PacketBool,
-    is_debug: PacketBool,
-    is_flat: PacketBool,
-    has_death_location: PacketBool,
-    death_dimension_name: Identifier,
-    death_location: Position,
+    pub entity_id: i32,
+    pub is_hardcore: bool,
+    pub gamemode: u8,
+    pub previous_gamemode: i8,
+    pub dimension_names: LengthPrefixArray<Identifier>,
+    pub registry_codec: NBTValue,
+    pub dimension_type: Identifier,
+    pub dimension_name: Identifier,
+    pub hashed_seed: i64,
+    pub max_players: VarInt,
+    pub view_distance: VarInt,
+    pub simulation_distance: VarInt,
+    pub reduced_debug_info: bool,
+    pub enabled_respawn_screen: bool,
+    pub is_debug: bool,
+    pub is_flat: bool,
+    pub has_death_location: bool,
+    pub death_dimension_name: Identifier,
+    pub death_location: Position,
+}
+
+#[derive(Debug, Codec)]
+pub struct ClientInformation {
+    pub locale: String,
+    pub view_distance: i8,
+    pub chat_mode: VarInt,
+    pub chat_colours: bool,
+    pub display_skin_parts: u8,
+    pub main_hand: VarInt,
+    pub enable_text_filtering: bool,
+    pub allow_server_listings: bool,
 }

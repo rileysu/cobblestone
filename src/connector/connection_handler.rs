@@ -110,8 +110,6 @@ async fn handle_reciever(mut reader: OwnedReadHalf, boundary: RecieverConnection
 async fn handle_sender(mut writer: OwnedWriteHalf, mut boundary: SenderConnectionBoundary) {
     let mut processor = SenderProcessor::new();
 
-    //let mut writer = BufWriter::new(writer);
-
     loop {
         match boundary.recieve_message().await {
             Some(message) => {
@@ -119,8 +117,6 @@ async fn handle_sender(mut writer: OwnedWriteHalf, mut boundary: SenderConnectio
                 
                 write_varint(&mut writer, data.len() as i32).await.unwrap();
                 writer.write(&data).await.unwrap();
-
-                //writer.flush().await.unwrap();
             },
             None => break,
         }

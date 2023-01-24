@@ -1,4 +1,4 @@
-use codec::{Codec, Result, Error, ErrorKind};
+use crate::data::codec::{Codec, Result, Error, ErrorKind};
 use std::io::{Read, Seek, Write};
 use byteorder::{ReadBytesExt, WriteBytesExt};
 

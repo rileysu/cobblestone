@@ -1,49 +1,53 @@
-use codec::{Codec, Result};
+use crate::data::codec::{Codec, Result};
 use std::io::{Read, Seek, Write};
 use byteorder::{ReadBytesExt, WriteBytesExt, NetworkEndian};
 
-#[derive(Debug, PartialEq)]
-pub struct PacketUByte(pub u8);
-
-#[derive(Debug, PartialEq)]
-pub struct PacketUShort(pub u16);
-
-impl Codec for PacketUByte {
+impl Codec for u8 {
     fn decode(buf: &mut (impl Read + Seek)) -> Result<Self> {
-        Ok(PacketUByte(buf.read_u8()?))
+        buf.read_u8()
     }
 
     fn encode(&self, buf: &mut impl Write) -> Result<()> {
-        let PacketUByte(value) = self;
-
-        buf.write_u8(*value)?;
-
-        Ok(())
+        buf.write_u8(*self)
     }
 }
 
-impl Codec for PacketUShort {
+impl Codec for u16 {
     fn decode(buf: &mut (impl Read + Seek)) -> Result<Self> {
-        Ok(PacketUShort(buf.read_u16::<NetworkEndian>()?))
+        buf.read_u16::<NetworkEndian>()
     }
 
     fn encode(&self, buf: &mut impl Write) -> Result<()> {
-        let PacketUShort(value) = self;
-
-        buf.write_u16::<NetworkEndian>(*value)?;
-
-        Ok(())
+        buf.write_u16::<NetworkEndian>(*self)
     }
 }
 
-impl From<u8> for PacketUByte {
-    fn from(value: u8) -> Self {
-        PacketUByte(value)
+impl Codec for u32 {
+    fn decode(buf: &mut (impl Read + Seek)) -> Result<Self> {
+        buf.read_u32::<NetworkEndian>()
+    }
+
+    fn encode(&self, buf: &mut impl Write) -> Result<()> {
+        buf.write_u32::<NetworkEndian>(*self)
     }
 }
 
-impl From<u16> for PacketUShort {
-    fn from(value: u16) -> Self {
-        PacketUShort(value)
+impl Codec for u64 {
+    fn decode(buf: &mut (impl Read + Seek)) -> Result<Self> {
+        buf.read_u64::<NetworkEndian>()
+    }
+
+    fn encode(&self, buf: &mut impl Write) -> Result<()> {
+        buf.write_u64::<NetworkEndian>(*self)
+    }
+}
+
+impl Codec for u128 {
+    fn decode(buf: &mut (impl Read + Seek)) -> Result<Self> {
+        buf.read_u128::<NetworkEndian>()
+    }
+
+    fn encode(&self, buf: &mut impl Write) -> Result<()> {
+        buf.write_u128::<NetworkEndian>(*self)
     }
 }

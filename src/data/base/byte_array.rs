@@ -1,4 +1,4 @@
-use codec::{Codec, Result};
+use crate::data::codec::{Codec, Result};
 use std::io::{Read, Write, Seek};
 use super::VarInt;
 

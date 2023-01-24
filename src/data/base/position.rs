@@ -1,12 +1,12 @@
-use codec::{Codec, Result};
+use crate::data::codec::{Codec, Result};
 use std::io::{Read, Seek, Write};
 use byteorder::{ReadBytesExt, WriteBytesExt, NetworkEndian};
 
 #[derive(Debug, PartialEq)]
 pub struct Position {
-    x: i32,
-    y: i32,
-    z: i32,
+    pub x: i32,
+    pub y: i32,
+    pub z: i32,
 }
 
 impl Codec for Position {

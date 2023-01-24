@@ -1,6 +1,7 @@
 use codec_derive::Codec;
-use codec::{Codec, Result, Error, ErrorKind};
-use std::io::{Cursor, Read, Seek, Write};
+use crate::data::codec;
+use crate::data::codec::{Codec, Result, Error, ErrorKind};
+use std::io::{Read, Seek, Write};
 use crate::data::base::*;
 
 #[derive(Debug)]
@@ -77,8 +78,8 @@ impl Codec for OutboundLogin {
 
 #[derive(Debug, Codec)]
 pub struct LoginStart {
-    pub username: PacketString,
-    pub has_player_uuid: PacketBool,
+    pub username: String,
+    pub has_player_uuid: bool,
     pub player_uuid: Uuid,
 }
 
@@ -91,33 +92,33 @@ pub struct EncryptionResponse {
 #[derive(Debug, Codec)] 
 pub struct LoginPluginResponse {
     pub message_id: VarInt,
-    pub successful: PacketBool,
+    pub successful: bool,
     pub data: ConsumingByteArray,
 }
 
 #[derive(Debug, Codec)]
 pub struct Disconnect {
-    pub reason: PacketString
+    pub reason: String
 }
 
 #[derive(Debug, Codec)]
 pub struct EncryptionRequest {
-    pub server_id: PacketString,
+    pub server_id: String,
     pub public_key: LengthPrefixByteArray,
     pub verify_token: LengthPrefixByteArray,
 }
 
 #[derive(Debug, Codec)]
 pub struct LoginSuccessProperty {
-    pub name: PacketString,
-    pub value: PacketString,
-    pub signature: PacketOption<PacketString>,
+    pub name: String,
+    pub value: String,
+    pub signature: Option<String>,
 }
 
 #[derive(Debug, Codec)]
 pub struct LoginSuccess {
     pub uuid: Uuid,
-    pub username: PacketString,
+    pub username: String,
     pub properties: LengthPrefixArray<LoginSuccessProperty>,
 }
 
@@ -129,6 +130,6 @@ pub struct SetCompression {
 #[derive(Debug, Codec)]
 pub struct LoginPluginRequest {
     pub message_id: VarInt,
-    pub channel: PacketString,
+    pub channel: String,
     pub data: ConsumingByteArray,
 }

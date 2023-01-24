@@ -1,6 +1,6 @@
 use std::io::Cursor;
 
-use codec::Codec;
+use crate::data::codec::Codec;
 use crate::data::packets::handshaking::*;
 use crate::data::packets::login::{InboundLogin};
 use crate::data::packets::play::{InboundPlay};
@@ -53,11 +53,19 @@ impl RecieverProcessor {
                 Some(InboundMessage::Status(InboundStatus::decode(&mut buf).unwrap()))
             },
             State::Login => {
-                Some(InboundMessage::Login(InboundLogin::decode(&mut buf).unwrap()))
+                let state_packet = InboundLogin::decode(&mut buf).unwrap();
+                
+                //If online / compression are enabled this will cause major issues
+                //TODO
+                if let InboundLogin::LoginStart(_) = &state_packet {
+                    self.state = State::Play;
+                }
+
+                Some(InboundMessage::Login(state_packet))
             },
             State::Play => {
                 Some(InboundMessage::Play(InboundPlay::decode(&mut buf).unwrap()))
-            }
+            },
         }
     }
 }
