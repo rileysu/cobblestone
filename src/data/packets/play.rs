@@ -7,6 +7,9 @@ use std::io::{Seek, Read, Write};
 #[derive(Debug)]
 pub enum InboundPlay {
     ClientInformation(ClientInformation),
+    PluginMessage(PluginMessage),
+    SetPlayerPosition(SetPlayerPosition),
+    SetPlayerPositionAndRotation(SetPlayerPositionAndRotation),
 }
 
 impl Codec for InboundPlay {
@@ -16,6 +19,15 @@ impl Codec for InboundPlay {
         match id {
             0x07 => Ok(InboundPlay::ClientInformation(
                 ClientInformation::decode(buf)?
+            )),
+            0x0C => Ok(InboundPlay::PluginMessage(
+                PluginMessage::decode(buf)?
+            )),
+            0x13 => Ok(InboundPlay::SetPlayerPosition(
+                SetPlayerPosition::decode(buf)?
+            )),
+            0x14 => Ok(InboundPlay::SetPlayerPositionAndRotation(
+                SetPlayerPositionAndRotation::decode(buf)?
             )),
             _ => Err(Error::from(ErrorKind::InvalidData)),
         }
@@ -92,4 +104,22 @@ pub struct ClientInformation {
     pub main_hand: VarInt,
     pub enable_text_filtering: bool,
     pub allow_server_listings: bool,
+}
+
+#[derive(Debug, Codec)]
+pub struct SetPlayerPosition {
+    x: f64,
+    feet_y: f64,
+    z: f64,
+    on_ground: bool,
+}
+
+#[derive(Debug, Codec)]
+pub struct SetPlayerPositionAndRotation {
+    x: f64,
+    feet_y: f64,
+    z: f64,
+    yaw: f32,
+    pitch: f32,
+    on_ground: bool,
 }

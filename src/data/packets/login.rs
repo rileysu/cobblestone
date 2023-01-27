@@ -79,8 +79,7 @@ impl Codec for OutboundLogin {
 #[derive(Debug, Codec)]
 pub struct LoginStart {
     pub username: String,
-    pub has_player_uuid: bool,
-    pub player_uuid: Uuid,
+    pub player_uuid: Option<Uuid>,
 }
 
 #[derive(Debug, Codec)]

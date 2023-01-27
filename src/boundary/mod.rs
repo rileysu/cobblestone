@@ -1,4 +1,6 @@
-use self::{main_boundary::MainBoundary, message::{IdentifiedInboundMessage, OutboundMessage, InboundMessage}, connection_boundary::{RecieverConnectionBoundary, SenderConnectionBoundary}};
+use crate::data::base::Uuid;
+
+use self::{main_boundary::MainBoundary, message::{IdentifiedInboundMessage, OutboundMessage, InboundMessage, IdentifiedChannel}, connection_boundary::{RecieverConnectionBoundary, SenderConnectionBoundary}};
 use tokio::sync::mpsc;
 
 pub mod connection_boundary;
@@ -9,33 +11,31 @@ pub mod message;
 
 pub struct BoundaryFactory {
     inbound_tx: mpsc::UnboundedSender<IdentifiedInboundMessage>,
+    channel_tx: mpsc::UnboundedSender<IdentifiedChannel>,
 }
 
 impl BoundaryFactory {
     pub fn new_main_boundary_and_factory() -> (MainBoundary, Self) {
         let (inbound_tx, inbound_rx) = mpsc::unbounded_channel::<IdentifiedInboundMessage>();
-        
+        let (channel_tx, channel_rx) = mpsc::unbounded_channel::<IdentifiedChannel>();
+
         (
-            MainBoundary::new(inbound_rx),
+            MainBoundary::new(inbound_rx, channel_rx),
             Self {
                 inbound_tx,
+                channel_tx,
             }
         )
     }
 
-    pub fn construct_connection_boundary(&self, id: &str) -> (SenderConnectionBoundary, RecieverConnectionBoundary) {
+    pub fn construct_connection_boundaries(&self, uuid: Uuid) -> (SenderConnectionBoundary, RecieverConnectionBoundary) {
         let (outbound_tx, outbound_rx) = mpsc::unbounded_channel::<OutboundMessage>();
 
-        self.inbound_tx.send( IdentifiedInboundMessage {
-            id: id.to_string(),
-            message: InboundMessage::InitConnection { 
-                outbound_tx,
-            },
-        }).unwrap();
+        self.channel_tx.send(IdentifiedChannel { uuid: uuid, channel: outbound_tx }).unwrap();
         
         (
             SenderConnectionBoundary::new(outbound_rx),
-            RecieverConnectionBoundary::new(id, self.inbound_tx.clone())
+            RecieverConnectionBoundary::new(uuid, self.inbound_tx.clone())
         )
     }
 }

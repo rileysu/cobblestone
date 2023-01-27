@@ -1,14 +1,15 @@
 use std::sync::Arc;
 use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
-use tokio::net::{TcpListener};
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::{TcpListener, TcpStream};
+use tokio::io::{AsyncReadExt, AsyncWriteExt, AsyncRead, AsyncWrite};
 use tokio::io::{Error, ErrorKind};
 use tokio::runtime::Runtime;
 use crate::boundary::BoundaryFactory;
 use crate::boundary::connection_boundary::{RecieverConnectionBoundary, SenderConnectionBoundary};
 use crate::boundary::main_boundary::MainBoundary;
-use crate::boundary::message::InboundMessage;
-use super::state_processor::{SenderProcessor, RecieverProcessor};
+use crate::data::base::Uuid;
+use super::new_connection_processor::{NewConnectionProcessor};
+use super::sender_reciever_processing;
 
 #[derive(Debug)]
 pub struct ConnectionHandler {
@@ -18,7 +19,7 @@ pub struct ConnectionHandler {
 const DATA_BITS: u8 = 0x7F;
 const CONTINUE_BITS: u8 = 0x80;
 
-async fn read_varint(reader: &mut OwnedReadHalf) -> Result<i32, Error> {
+async fn read_varint(reader: &mut (impl AsyncRead + Unpin)) -> Result<i32, Error> {
         let mut out = 0u32; //Unsigned for logical bit operations
         
         for pos in (0..32).step_by(7) {
@@ -34,7 +35,7 @@ async fn read_varint(reader: &mut OwnedReadHalf) -> Result<i32, Error> {
         Ok(out as i32)
 }
 
-async fn write_varint(writer: &mut OwnedWriteHalf, value: i32) -> Result<(), Error> {
+async fn write_varint(writer: &mut (impl AsyncWrite + Unpin), value: i32) -> Result<(), Error> {
     let mut val = value as u32;
     
     for _ in (0..32).step_by(7) {
@@ -51,72 +52,93 @@ async fn write_varint(writer: &mut OwnedWriteHalf, value: i32) -> Result<(), Err
     Err(ErrorKind::InvalidData.into())
 }
 
+async fn read_packet(mut reader: &mut (impl AsyncRead + Unpin)) -> Result<Vec<u8>, Error> {
+    let length = read_varint(&mut reader).await?;
+    let mut buf = vec![0u8; length as usize];
 
+    reader.read_exact(&mut buf).await?;
 
-// async fn is_connection_terminated(reader: &mut BufReader<OwnedReadHalf>) -> bool {
-//     match reader.peek(&mut [0u8]).await {
-//         Ok(0) => true,
-//         _ => false,
-//     }
-// }
+    Ok(buf)
+}
+
+async fn write_packet(writer: &mut (impl AsyncWrite + Unpin), buf: &Vec<u8>) -> Result<(), Error> {
+    write_varint(writer, buf.len() as i32).await?;
+    writer.write(buf).await?;
+
+    Ok(())
+}
 
 async fn handle_new_connections(runtime: Arc<Runtime>, boundary_factory: BoundaryFactory) {
     let listener = TcpListener::bind("0.0.0.0:25565").await.unwrap();
 
     loop {
-        let (new_stream, addr) = listener.accept().await.unwrap();
+        let (mut new_stream, _addr) = listener.accept().await.unwrap();
 
         new_stream.set_nodelay(true).unwrap();
 
-        let (reader, writer) = new_stream.into_split();
-        let (sender_boundary, reciever_boundary) = boundary_factory.construct_connection_boundary(&addr.to_string());
-
-        runtime.spawn(handle_reciever(reader, reciever_boundary));
-        runtime.spawn(handle_sender(writer, sender_boundary));
-    }
-}
-
-async fn handle_reciever(mut reader: OwnedReadHalf, boundary: RecieverConnectionBoundary) {
-    let mut processor = RecieverProcessor::new();
-
-    //let mut reader = BufReader::new(reader);
-
-    loop {
-        let length = match read_varint(&mut reader).await {
-            Ok(length) => length,
-            Err(_) => {
-                boundary.send_message(InboundMessage::TermConnection).unwrap();
-                break;
-            }
-        };
-
-        let mut buf = vec![0u8; length as usize];
-        match reader.read_exact(&mut buf).await {
-            Err(_) => {
-                boundary.send_message(InboundMessage::TermConnection).unwrap();
-                break;
+        match handle_new_connection(&mut new_stream).await {
+            Some(uuid) => {
+                let (reader, writer) = new_stream.into_split();
+                let (sender_boundary, reciever_boundary) = boundary_factory.construct_connection_boundaries(uuid);
+        
+                runtime.spawn(handle_reciever(reader, reciever_boundary));
+                runtime.spawn(handle_sender(writer, sender_boundary));
             },
-            _ => {},
-        };
-
-        let optional_message = processor.process(&buf);
-
-        if let Some(message) = optional_message {
-            boundary.send_message(message).unwrap();
+            None => continue,
         }
     }
 }
 
-async fn handle_sender(mut writer: OwnedWriteHalf, mut boundary: SenderConnectionBoundary) {
-    let mut processor = SenderProcessor::new();
+async fn handle_new_connection(mut stream: &mut TcpStream) -> Option<Uuid> {
+    let mut new_connection_processor = NewConnectionProcessor::new();
 
+    loop {
+        let inbound_packet_buf = match read_packet(&mut stream).await {
+            Ok(buf) => buf,
+            Err(err) => match err.kind() {
+                ErrorKind::UnexpectedEof | ErrorKind::ConnectionReset => return None,
+                _ => panic!("{:?}", err),
+            },
+        };
+
+        let (outbound_packet_bufs, maybe_login_info) =  new_connection_processor.process(&inbound_packet_buf);
+
+        for packet_buf in outbound_packet_bufs {
+            write_packet(&mut stream, &packet_buf).await.unwrap();
+        }
+
+        if let Some(login_info) = maybe_login_info {
+            return Some(login_info);
+        }
+    }
+}
+
+async fn handle_reciever(mut reader: OwnedReadHalf, boundary: RecieverConnectionBoundary) {
+    loop {
+        let inbound_packet_buf = match read_packet(&mut reader).await {
+            Ok(buf) => buf,
+            Err(err) => match err.kind() {
+                ErrorKind::UnexpectedEof => return,
+                _ => panic!("{:?}", err),
+            },
+        };
+
+        let message = sender_reciever_processing::recieve_process(&inbound_packet_buf);
+
+        boundary.send_message(message).unwrap();
+    }
+}
+
+async fn handle_sender(mut writer: OwnedWriteHalf, mut boundary: SenderConnectionBoundary) {
     loop {
         match boundary.recieve_message().await {
             Some(message) => {
-                let data = processor.process(&message);
-                
-                write_varint(&mut writer, data.len() as i32).await.unwrap();
-                writer.write(&data).await.unwrap();
+                let action = sender_reciever_processing::send_process(&message);
+
+                match action {
+                    sender_reciever_processing::NextAction::Send(outbound_packet_buf) => write_packet(&mut writer, &outbound_packet_buf).await.unwrap(),
+                    sender_reciever_processing::NextAction::Kill => todo!(),
+                }
             },
             None => break,
         }

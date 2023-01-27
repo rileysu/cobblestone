@@ -1,27 +1,27 @@
 use tokio::sync::mpsc;
 
-use crate::data::{packets::{login::{InboundLogin, OutboundLogin}, status::{InboundStatus, OutboundStatus}, play::{InboundPlay, OutboundPlay}}};
+use crate::data::{packets::play::{InboundPlay, OutboundPlay}, base::Uuid};
 
 #[derive(Debug)]
 pub enum InboundMessage {
-    InitConnection {
-        outbound_tx: mpsc::UnboundedSender<OutboundMessage>,
-    },
-    Status(InboundStatus),
-    Login(InboundLogin),
+    InitConnection,
     Play(InboundPlay),
     TermConnection,
 }
 
 #[derive(Debug)]
 pub struct IdentifiedInboundMessage {
-    pub id: String,
+    pub uuid: Uuid,
     pub message: InboundMessage,
 }
 
 #[derive(Debug)]
+pub struct IdentifiedChannel {
+    pub uuid : Uuid,
+    pub channel: mpsc::UnboundedSender<OutboundMessage>,
+}
+
+#[derive(Debug)]
 pub enum OutboundMessage {
-    Status(OutboundStatus),
-    Login(OutboundLogin),
     Play(OutboundPlay),
 }

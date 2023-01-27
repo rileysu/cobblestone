@@ -1,7 +1,7 @@
 use crate::data::codec::{Codec, Result};
 use std::io::{Read, Seek, Write};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub struct Uuid(pub u128);
 
 impl Codec for Uuid {

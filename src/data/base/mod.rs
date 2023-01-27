@@ -9,6 +9,7 @@ mod array;
 mod option;
 mod nbt;
 mod position;
+mod float;
 
 pub use self::bool::*;
 pub use signed::*;
@@ -21,3 +22,4 @@ pub use array::*;
 pub use option::*;
 pub use nbt::*;
 pub use position::*;
+pub use float::*;

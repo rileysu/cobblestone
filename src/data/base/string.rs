@@ -35,7 +35,7 @@ impl Codec for Identifier {
             let mut split = entire.split(":");
 
             //If string contains ":" then it must be able to split
-            (split.nth(0).unwrap().to_string(), split.nth(1).unwrap().to_string())
+            (split.next().unwrap().to_string(), split.next().unwrap().to_string())
         } else {
             ("minecraft".to_string(), entire)
         };
