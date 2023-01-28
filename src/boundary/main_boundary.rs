@@ -61,6 +61,16 @@ impl MainBoundary {
         }
     }
 
+    pub fn recieve_all_messages(&mut self) -> Vec<IdentifiedInboundMessage> {
+        let mut out = Vec::new();
+
+        while let Some(message) = self.recieve_message() {
+            out.push(message);
+        }
+
+        out
+    }
+
     pub fn send_message(&self, uuid: Uuid, message: OutboundMessage) {
         self.messages_txs.get(&uuid).unwrap().send(message).unwrap();
     }

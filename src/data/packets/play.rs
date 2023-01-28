@@ -8,6 +8,7 @@ use std::io::{Seek, Read, Write};
 pub enum InboundPlay {
     ClientInformation(ClientInformation),
     PluginMessage(PluginMessage),
+    KeepAlive(KeepAlive),
     SetPlayerPosition(SetPlayerPosition),
     SetPlayerPositionAndRotation(SetPlayerPositionAndRotation),
 }
@@ -22,6 +23,9 @@ impl Codec for InboundPlay {
             )),
             0x0C => Ok(InboundPlay::PluginMessage(
                 PluginMessage::decode(buf)?
+            )),
+            0x11 => Ok(InboundPlay::KeepAlive(
+                KeepAlive::decode(buf)?
             )),
             0x13 => Ok(InboundPlay::SetPlayerPosition(
                 SetPlayerPosition::decode(buf)?
@@ -41,7 +45,9 @@ impl Codec for InboundPlay {
 #[derive(Debug)]
 pub enum OutboundPlay {
     PluginMessage(PluginMessage),
+    KeepAlive(KeepAlive),
     Login(Login),
+    SetDefaultSpawnPosition(SetDefaultSpawnPosition),
 }
 
 impl Codec for OutboundPlay {
@@ -54,10 +60,18 @@ impl Codec for OutboundPlay {
             OutboundPlay::PluginMessage(plugin_message) => {
                 VarInt::encode(&VarInt(0x15), buf)?;
                 plugin_message.encode(buf)?;
-            }
+            },
+            OutboundPlay::KeepAlive(keep_alive) => {
+                VarInt::encode(&VarInt(0x1F), buf)?;
+                keep_alive.encode(buf)?;
+            },
             OutboundPlay::Login(login) => {
                 VarInt::encode(&VarInt(0x24), buf)?;
                 login.encode(buf)?;
+            },
+            OutboundPlay::SetDefaultSpawnPosition(spawn_pos) => {
+                VarInt::encode(&VarInt(0x4C), buf)?;
+                spawn_pos.encode(buf)?;
             }
         }
 
@@ -66,9 +80,44 @@ impl Codec for OutboundPlay {
 }
 
 #[derive(Debug, Codec)]
+pub struct ClientInformation {
+    pub locale: String,
+    pub view_distance: i8,
+    pub chat_mode: VarInt,
+    pub chat_colours: bool,
+    pub display_skin_parts: u8,
+    pub main_hand: VarInt,
+    pub enable_text_filtering: bool,
+    pub allow_server_listings: bool,
+}
+
+#[derive(Debug, Codec)]
 pub struct PluginMessage {
     pub channel: Identifier,
     pub data: ConsumingByteArray,
+}
+
+#[derive(Debug, Codec)]
+pub struct KeepAlive {
+    pub keep_alive_id: i64,
+}
+
+#[derive(Debug, Codec)]
+pub struct SetPlayerPosition {
+    x: f64,
+    feet_y: f64,
+    z: f64,
+    on_ground: bool,
+}
+
+#[derive(Debug, Codec)]
+pub struct SetPlayerPositionAndRotation {
+    x: f64,
+    feet_y: f64,
+    z: f64,
+    yaw: f32,
+    pitch: f32,
+    on_ground: bool,
 }
 
 #[derive(Debug, Codec)]
@@ -95,31 +144,7 @@ pub struct Login {
 }
 
 #[derive(Debug, Codec)]
-pub struct ClientInformation {
-    pub locale: String,
-    pub view_distance: i8,
-    pub chat_mode: VarInt,
-    pub chat_colours: bool,
-    pub display_skin_parts: u8,
-    pub main_hand: VarInt,
-    pub enable_text_filtering: bool,
-    pub allow_server_listings: bool,
-}
-
-#[derive(Debug, Codec)]
-pub struct SetPlayerPosition {
-    x: f64,
-    feet_y: f64,
-    z: f64,
-    on_ground: bool,
-}
-
-#[derive(Debug, Codec)]
-pub struct SetPlayerPositionAndRotation {
-    x: f64,
-    feet_y: f64,
-    z: f64,
-    yaw: f32,
-    pitch: f32,
-    on_ground: bool,
+pub struct SetDefaultSpawnPosition {
+    pub location: Position,
+    pub angle: f32,
 }

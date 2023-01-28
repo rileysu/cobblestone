@@ -4,17 +4,19 @@ mod data;
 mod simulation;
 mod utils;
 
+use std::sync::Arc;
+use std::time::{Instant};
 use std::{thread::sleep, time::Duration};
 
-use boundary::{main_boundary::MainBoundary, message::OutboundMessage};
+use boundary::main_boundary::MainBoundary;
+use boundary::message::OutboundMessage;
 use data::base::*;
-use data::packets::play::PluginMessage;
-use data::{packets::{status::{InboundStatus, OutboundStatus, StatusResponse, PingResponse}, login::{InboundLogin, OutboundLogin, LoginSuccess}, play::{InboundPlay, OutboundPlay, Login}}};
+use data::packets::play::{PluginMessage, KeepAlive, SetDefaultSpawnPosition};
+use data::{packets::play::{InboundPlay, OutboundPlay, Login}};
 use connector::connection_handler::ConnectionHandler;
-use serde_json::json;
-use simulation::server_state::{ServerState};
+use simulation::server_state::ServerState;
 
-fn handle_login(uuid: Uuid, main_boundary: &mut MainBoundary, server_state: &mut ServerState) {
+fn handle_init(uuid: Uuid, server_state: &mut ServerState, main_boundary: &mut MainBoundary) {
     main_boundary.send_message(uuid, OutboundMessage::Play(OutboundPlay::Login(Login {
         entity_id: 0,
         is_hardcore: false,
@@ -45,9 +47,14 @@ fn handle_login(uuid: Uuid, main_boundary: &mut MainBoundary, server_state: &mut
         channel: Identifier { namespace: "minecraft".into(), value: "brand".into() },
         data: ConsumingByteArray("cobblestone".bytes().collect()),
     })));
+
+    main_boundary.send_message(uuid, OutboundMessage::Play(OutboundPlay::SetDefaultSpawnPosition(SetDefaultSpawnPosition {
+        location: Position { x: 0, y: 0, z: 0 },
+        angle: 0.0,
+    })))
 }
 
-fn handle_play(uuid: Uuid, packet: InboundPlay, main_boundary: &mut MainBoundary, server_state: &mut ServerState) {
+fn handle_play(uuid: Uuid, packet: InboundPlay, server_state: &mut ServerState, main_boundary: &mut MainBoundary) {
     match packet {
         InboundPlay::ClientInformation(client_information) => {
 
@@ -59,27 +66,32 @@ fn handle_play(uuid: Uuid, packet: InboundPlay, main_boundary: &mut MainBoundary
 
         },
         InboundPlay::SetPlayerPosition(set_player_pos) => {
-            
+
         },
+        InboundPlay::KeepAlive(_) => todo!(),
     }
 }
 
 fn main() {
-    let (mut main_boundary, connection_handler) = ConnectionHandler::bootstrap();
-
+    let (mut main_boundary, _connection_handler) = ConnectionHandler::bootstrap();
     let mut server_state = ServerState::new();
+    //let mut task_manager = TaskManager::new();
 
     loop {
-        while let Some(message) = main_boundary.recieve_message() {
+        let start = Instant::now();
+
+        //task_manager.poll_and_execute_all(&resources, false);
+
+        for message in main_boundary.recieve_all_messages() {
 
             println!("{message:?}");
 
             match message.message {
                 boundary::message::InboundMessage::InitConnection => {
-                    handle_login(message.uuid, &mut main_boundary, &mut server_state)
+                    handle_init(message.uuid, &mut server_state, &mut main_boundary)
                 }
                 boundary::message::InboundMessage::Play(packet) => {
-                    handle_play(message.uuid, packet, &mut main_boundary, &mut server_state);
+                    handle_play(message.uuid, packet, &mut server_state, &mut main_boundary);
                 },
                 boundary::message::InboundMessage::TermConnection => {
 
@@ -87,7 +99,12 @@ fn main() {
             }
         }
 
-        sleep(Duration::from_micros(625)) // 32 per tick!
+        let semi_tick_duration = Duration::from_micros(625);
+        let elapsed = start.elapsed();
+        
+        if semi_tick_duration > elapsed {
+            sleep(semi_tick_duration - elapsed); // 32 per tick!
+        }
     }
 }
 

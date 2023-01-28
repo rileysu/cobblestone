@@ -7,8 +7,6 @@ use crate::boundary::message::{OutboundMessage, InboundMessage};
 pub fn recieve_process(data: &[u8]) -> InboundMessage {
     let mut buf = Cursor::new(data);
 
-    println!("{:?}", buf);
-
     InboundMessage::Play(InboundPlay::decode(&mut buf).unwrap())
 }
 

@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use super::dimension::Dimension;
+use super::{dimension::Dimension};
 
 pub struct ServerState {
     pub dimensions: HashMap<String, Dimension>,

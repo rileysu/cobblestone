@@ -11,5 +11,5 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 byteorder = "1"
 codec_derive = { path = "codec_derive" }
-pin-project-lite = "0.2"
 cfb8 = "0.8"
+bevy = "0.9"
