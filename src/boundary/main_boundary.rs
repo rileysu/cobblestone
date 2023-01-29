@@ -1,3 +1,4 @@
+use bevy::prelude::Resource;
 use tokio::sync::mpsc;
 use tokio::sync::mpsc::error::TryRecvError;
 use std::{collections::HashMap};
@@ -5,7 +6,7 @@ use crate::data::base::Uuid;
 
 use super::message::{OutboundMessage, IdentifiedInboundMessage, InboundMessage, IdentifiedChannel};
 
-#[derive(Debug)]
+#[derive(Debug, Resource)]
 pub struct MainBoundary {
     messages_txs: HashMap<Uuid, mpsc::UnboundedSender<OutboundMessage>>,
     messages_rx: mpsc::UnboundedReceiver<IdentifiedInboundMessage>,

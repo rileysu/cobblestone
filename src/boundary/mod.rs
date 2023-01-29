@@ -1,6 +1,6 @@
 use crate::data::base::Uuid;
 
-use self::{main_boundary::MainBoundary, message::{IdentifiedInboundMessage, OutboundMessage, InboundMessage, IdentifiedChannel}, connection_boundary::{RecieverConnectionBoundary, SenderConnectionBoundary}};
+use self::{main_boundary::MainBoundary, message::{IdentifiedInboundMessage, OutboundMessage, IdentifiedChannel}, connection_boundary::{RecieverConnectionBoundary, SenderConnectionBoundary}};
 use tokio::sync::mpsc;
 
 pub mod connection_boundary;

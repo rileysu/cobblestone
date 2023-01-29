@@ -1,9 +1,14 @@
+use std::collections::HashMap;
+use bevy::prelude::*;
+
+#[derive(Debug)]
 pub enum DimensionEffect {
     Overworld,
     TheNether,
     TheEnd,
 }
 
+#[derive(Debug)]
 pub struct DimensionConfig {
     pub piglin_safe: bool,
     pub has_raids: bool,
@@ -25,6 +30,7 @@ pub struct DimensionConfig {
     pub has_ceiling: bool,
 }
 
+#[derive(Debug)]
 pub struct Dimension {
     pub config: DimensionConfig,
 }
@@ -53,5 +59,18 @@ impl Default for Dimension {
                 has_ceiling: false,
             }
         }
+    }
+}
+
+#[derive(Debug, Resource)]
+pub struct Dimensions(pub HashMap<String, Dimension>);
+
+impl Dimensions {
+    pub fn new() -> Self {
+        Self(
+            HashMap::from([
+                ("minecraft:overworld".into(), Dimension::default()),
+            ])
+        )
     }
 }

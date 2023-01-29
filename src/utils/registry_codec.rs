@@ -1,9 +1,9 @@
 use std::collections::HashMap;
-use crate::{data::base::{NBTValue, NBT_COMPOUND_ID}, simulation::dimension::{Dimension, DimensionEffect}};
+use crate::{data::base::{NBTValue, NBT_COMPOUND_ID}, simulation::dimensions::{Dimension, DimensionEffect, Dimensions}};
 
-pub fn generate_registry_type_entry(index: i32, dimension: &(&String, &Dimension)) -> NBTValue {
-    let name = &dimension.0;
-    let config = &dimension.1.config;
+pub fn generate_registry_type_entry(index: i32, named_dimension: &(&String, &Dimension)) -> NBTValue {
+    let name = &named_dimension.0;
+    let config = &named_dimension.1.config;
 
     NBTValue::Compound(HashMap::from([
         ("name".into(), NBTValue::String((*name).clone())),
@@ -35,15 +35,15 @@ pub fn generate_registry_type_entry(index: i32, dimension: &(&String, &Dimension
     ]))
 }
 
-pub fn generate_registry_codec(dimensions: &Vec<(&String, &Dimension)>) -> NBTValue {
+pub fn generate_registry_codec(dimensions: &Dimensions) -> NBTValue {
     NBTValue::Compound(HashMap::from([
         ("".into(),
             NBTValue::Compound(HashMap::from([
                 ("minecraft:dimension_type".into(), 
                     NBTValue::Compound(HashMap::from([
                         ("type".into(), NBTValue::String("minecraft:dimension_type".into())),
-                        ("value".into(), NBTValue::List(NBT_COMPOUND_ID, dimensions.iter().enumerate().map(|(index, dim)| 
-                            generate_registry_type_entry(index as i32, dim)).collect())
+                        ("value".into(), NBTValue::List(NBT_COMPOUND_ID, dimensions.0.iter().enumerate().map(|(index, dim)| 
+                            generate_registry_type_entry(index as i32, &dim)).collect())
                         ),
                     ]))),
                 ("minecraft:worldgen/biome".into(), 

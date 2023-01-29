@@ -1,3 +1,3 @@
 pub mod biome;
-pub mod dimension;
-pub mod server_state;
+pub mod dimensions;
+pub mod player;

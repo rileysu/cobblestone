@@ -7,6 +7,7 @@ use tokio::runtime::Runtime;
 use crate::boundary::BoundaryFactory;
 use crate::boundary::connection_boundary::{RecieverConnectionBoundary, SenderConnectionBoundary};
 use crate::boundary::main_boundary::MainBoundary;
+use crate::boundary::message::InboundMessage;
 use crate::data::base::Uuid;
 use super::new_connection_processor::{NewConnectionProcessor};
 use super::sender_reciever_processing;
@@ -118,12 +119,21 @@ async fn handle_reciever(mut reader: OwnedReadHalf, boundary: RecieverConnection
         let inbound_packet_buf = match read_packet(&mut reader).await {
             Ok(buf) => buf,
             Err(err) => match err.kind() {
-                ErrorKind::UnexpectedEof => return,
+                ErrorKind::UnexpectedEof => {
+                    boundary.send_message(InboundMessage::TermConnection).unwrap();
+                    return;
+                },
                 _ => panic!("{:?}", err),
             },
         };
 
-        let message = sender_reciever_processing::recieve_process(&inbound_packet_buf);
+        let message = match sender_reciever_processing::recieve_process(&inbound_packet_buf) {
+            Ok(message) => message,
+            Err(_) => {
+                boundary.send_message(InboundMessage::TermConnection).unwrap();
+                return;
+            }
+        };
 
         boundary.send_message(message).unwrap();
     }
@@ -133,7 +143,7 @@ async fn handle_sender(mut writer: OwnedWriteHalf, mut boundary: SenderConnectio
     loop {
         match boundary.recieve_message().await {
             Some(message) => {
-                let action = sender_reciever_processing::send_process(&message);
+                let action = sender_reciever_processing::send_process(&message).unwrap();
 
                 match action {
                     sender_reciever_processing::NextAction::Send(outbound_packet_buf) => write_packet(&mut writer, &outbound_packet_buf).await.unwrap(),
@@ -144,6 +154,7 @@ async fn handle_sender(mut writer: OwnedWriteHalf, mut boundary: SenderConnectio
         }
     }
 }
+
 
 impl ConnectionHandler {
     pub fn bootstrap() -> (MainBoundary, ConnectionHandler) {

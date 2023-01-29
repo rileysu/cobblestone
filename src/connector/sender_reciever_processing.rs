@@ -1,13 +1,13 @@
 use std::io::Cursor;
-use crate::data::codec::Codec;
+use crate::data::codec::{Codec, Error};
 use crate::data::packets::play::{InboundPlay};
 use crate::boundary::message::{OutboundMessage, InboundMessage};
 
 
-pub fn recieve_process(data: &[u8]) -> InboundMessage {
+pub fn recieve_process(data: &[u8]) -> Result<InboundMessage, Error> {
     let mut buf = Cursor::new(data);
 
-    InboundMessage::Play(InboundPlay::decode(&mut buf).unwrap())
+    Ok(InboundMessage::Play(InboundPlay::decode(&mut buf)?))
 }
 
 
@@ -17,14 +17,14 @@ pub enum NextAction {
 }
 
 
-pub fn send_process(message: &OutboundMessage) -> NextAction {
+pub fn send_process(message: &OutboundMessage) -> Result<NextAction, Error> {
     let mut buf: Cursor<Vec<u8>> = Cursor::new(Vec::new());
 
     match message {
         OutboundMessage::Play(play_message) => {
-            play_message.encode(&mut buf).unwrap();
+            play_message.encode(&mut buf)?;
 
-            NextAction::Send(buf.into_inner())
+            Ok(NextAction::Send(buf.into_inner()))
         },
     }
 }
