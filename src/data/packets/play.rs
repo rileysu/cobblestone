@@ -2,6 +2,7 @@ use codec_derive::Codec;
 use crate::data::codec;
 use crate::data::codec::{Codec, Result, Error, ErrorKind};
 use crate::data::base::*;
+use crate::data::compound::{discrete_position::DiscretePosition, nbt::NBTValue};
 use std::io::{Seek, Read, Write};
 
 #[derive(Debug)]
@@ -11,6 +12,8 @@ pub enum InboundPlay {
     KeepAlive(KeepAlive),
     SetPlayerPosition(SetPlayerPosition),
     SetPlayerPositionAndRotation(SetPlayerPositionAndRotation),
+    SetPlayerRotation(SetPlayerRotation),
+    SetPlayerOnGround(SetPlayerOnGround),
 }
 
 impl Codec for InboundPlay {
@@ -33,6 +36,12 @@ impl Codec for InboundPlay {
             0x14 => Ok(InboundPlay::SetPlayerPositionAndRotation(
                 SetPlayerPositionAndRotation::decode(buf)?
             )),
+            0x15 => Ok(InboundPlay::SetPlayerRotation(
+                SetPlayerRotation::decode(buf)?
+            )),
+            0x16 => Ok(InboundPlay::SetPlayerOnGround(
+                SetPlayerOnGround::decode(buf)?
+            )),
             _ => Err(Error::from(ErrorKind::InvalidData)),
         }
     }
@@ -45,9 +54,13 @@ impl Codec for InboundPlay {
 #[derive(Debug)]
 pub enum OutboundPlay {
     PluginMessage(PluginMessage),
+    EntityEvent(EntityEvent),
     KeepAlive(KeepAlive),
     Login(Login),
     SetDefaultSpawnPosition(SetDefaultSpawnPosition),
+    SetHeldItem(SetHeldItem),
+    UpdateRecipes(UpdateRecipes),
+    UpdateTags(UpdateTags),
 }
 
 impl Codec for OutboundPlay {
@@ -61,6 +74,10 @@ impl Codec for OutboundPlay {
                 VarInt::encode(&VarInt(0x15), buf)?;
                 plugin_message.encode(buf)?;
             },
+            OutboundPlay::EntityEvent(entity_event) => {
+                VarInt::encode(&VarInt(0x19), buf)?;
+                entity_event.encode(buf)?;
+            },
             OutboundPlay::KeepAlive(keep_alive) => {
                 VarInt::encode(&VarInt(0x1F), buf)?;
                 keep_alive.encode(buf)?;
@@ -72,7 +89,19 @@ impl Codec for OutboundPlay {
             OutboundPlay::SetDefaultSpawnPosition(spawn_pos) => {
                 VarInt::encode(&VarInt(0x4C), buf)?;
                 spawn_pos.encode(buf)?;
-            }
+            },
+            OutboundPlay::SetHeldItem(set_held_item) => {
+                VarInt::encode(&VarInt(0x49), buf)?;
+                set_held_item.encode(buf)?;
+            },
+            OutboundPlay::UpdateRecipes(update_recipes) => {
+                VarInt::encode(&VarInt(0x69), buf)?;
+                update_recipes.encode(buf)?;
+            },
+            OutboundPlay::UpdateTags(update_tags) => {
+                VarInt::encode(&VarInt(0x6A), buf)?;
+                update_tags.encode(buf)?;
+            },
         }
 
         Ok(())
@@ -104,20 +133,31 @@ pub struct KeepAlive {
 
 #[derive(Debug, Codec)]
 pub struct SetPlayerPosition {
-    x: f64,
-    feet_y: f64,
-    z: f64,
-    on_ground: bool,
+    pub x: f64,
+    pub feet_y: f64,
+    pub z: f64,
+    pub on_ground: bool,
 }
 
 #[derive(Debug, Codec)]
 pub struct SetPlayerPositionAndRotation {
-    x: f64,
-    feet_y: f64,
-    z: f64,
-    yaw: f32,
-    pitch: f32,
-    on_ground: bool,
+    pub x: f64,
+    pub feet_y: f64,
+    pub z: f64,
+    pub yaw: f32,
+    pub pitch: f32,
+    pub on_ground: bool,
+}
+
+#[derive(Debug, Codec)]
+pub struct SetPlayerRotation {
+    pub yaw: f32,
+    pub pitch: f32,
+}
+
+#[derive(Debug, Codec)]
+pub struct SetPlayerOnGround {
+    pub on_ground: bool,
 }
 
 #[derive(Debug, Codec)]
@@ -140,11 +180,51 @@ pub struct Login {
     pub is_flat: bool,
     pub has_death_location: bool,
     pub death_dimension_name: Identifier,
-    pub death_location: Position,
+    pub death_location: DiscretePosition,
 }
 
 #[derive(Debug, Codec)]
 pub struct SetDefaultSpawnPosition {
-    pub location: Position,
+    pub location: DiscretePosition,
     pub angle: f32,
+}
+
+#[derive(Debug, Codec)]
+pub struct SetHeldItem {
+    pub slot: i8,
+}
+
+//TODO: Fix this according to specs
+#[derive(Debug, Codec)]
+pub struct UpdateRecipesEntry {
+    pub recipe_type: Identifier,
+    pub recipe_id: Identifier,
+}
+
+#[derive(Debug, Codec)]
+pub struct UpdateRecipes {
+    pub recipes: LengthPrefixArray<UpdateRecipesEntry>,
+}
+
+#[derive(Debug, Codec)]
+pub struct UpdateTagsTag {
+    pub tag_name: Identifier,
+    pub values: LengthPrefixArray<VarInt>,
+}
+
+#[derive(Debug, Codec)]
+pub struct UpdateTagsGroup {
+    pub tag_type: Identifier,
+    pub values: LengthPrefixArray<UpdateTagsTag>,
+}
+
+#[derive(Debug, Codec)]
+pub struct UpdateTags {
+    pub groups: LengthPrefixArray<UpdateTagsGroup>,
+}
+
+#[derive(Debug, Codec)]
+pub struct EntityEvent {
+    pub entity_id: i32,
+    pub entity_status: i8,
 }

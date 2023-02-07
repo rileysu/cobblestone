@@ -1,3 +1,2 @@
-pub mod biome;
-pub mod dimensions;
-pub mod player;
+pub mod plugins;
+pub mod resources;

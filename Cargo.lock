@@ -991,6 +991,7 @@ dependencies = [
 name = "cobblestone"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "bevy",
  "byteorder",
  "cfb8",

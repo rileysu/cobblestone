@@ -3,13 +3,13 @@ use std::io::{Read, Seek, Write};
 use byteorder::{ReadBytesExt, WriteBytesExt, NetworkEndian};
 
 #[derive(Debug, PartialEq)]
-pub struct Position {
+pub struct DiscretePosition {
     pub x: i32,
     pub y: i32,
     pub z: i32,
 }
 
-impl Codec for Position {
+impl Codec for DiscretePosition {
     fn decode(buf: &mut (impl Read + Seek)) -> Result<Self> {
         let value = buf.read_i64::<NetworkEndian>()?;
 

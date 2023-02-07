@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::data::base::Uuid;
 
-#[derive(Component)]
+#[derive(Debug, Component)]
 pub struct PlayerInfo {
     pub uuid: Uuid,
 }

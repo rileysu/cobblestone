@@ -13,3 +13,4 @@ byteorder = "1"
 codec_derive = { path = "codec_derive" }
 cfb8 = "0.8"
 bevy = "0.9"
+anyhow = "1.0.68"

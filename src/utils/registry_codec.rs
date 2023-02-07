@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use crate::{data::base::{NBTValue, NBT_COMPOUND_ID}, simulation::dimensions::{Dimension, DimensionEffect, Dimensions}};
+use crate::{data::compound::{dimension::{Dimension, DimensionEffect}, nbt::{NBTValue, NBT_COMPOUND_ID}}, simulation::resources::dimensions::Dimensions};
 
 pub fn generate_registry_type_entry(index: i32, named_dimension: &(&String, &Dimension)) -> NBTValue {
     let name = &named_dimension.0;

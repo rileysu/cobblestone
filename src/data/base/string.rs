@@ -8,6 +8,15 @@ pub struct Identifier {
     pub value: String,
 }
 
+impl Identifier {
+    pub fn new(namespace: String, value: String) -> Self {
+        Self {
+            namespace,
+            value,
+        }
+    }
+}
+
 impl Codec for String {
     fn decode(buf: &mut (impl Read + Seek)) -> Result<Self> {
         let VarInt(length) = VarInt::decode(buf)?;
