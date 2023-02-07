@@ -2,6 +2,7 @@ use codec_derive::Codec;
 use crate::data::codec;
 use crate::data::codec::{Codec, Result, Error, ErrorKind};
 use crate::data::base::*;
+use crate::data::compound::light_array::LightArray;
 use crate::data::compound::{discrete_position::DiscretePosition, nbt::NBTValue};
 use std::io::{Seek, Read, Write};
 
@@ -56,6 +57,7 @@ pub enum OutboundPlay {
     PluginMessage(PluginMessage),
     EntityEvent(EntityEvent),
     KeepAlive(KeepAlive),
+    ChunkDataAndUpdateLight(ChunkDataAndUpdateLight),
     Login(Login),
     SetDefaultSpawnPosition(SetDefaultSpawnPosition),
     SetHeldItem(SetHeldItem),
@@ -82,6 +84,10 @@ impl Codec for OutboundPlay {
                 VarInt::encode(&VarInt(0x1F), buf)?;
                 keep_alive.encode(buf)?;
             },
+            OutboundPlay::ChunkDataAndUpdateLight(chunk_data_and_update_light) => {
+                VarInt::encode(&VarInt(0x20), buf)?;
+                chunk_data_and_update_light.encode(buf)?;
+            }
             OutboundPlay::Login(login) => {
                 VarInt::encode(&VarInt(0x24), buf)?;
                 login.encode(buf)?;
@@ -129,6 +135,30 @@ pub struct PluginMessage {
 #[derive(Debug, Codec)]
 pub struct KeepAlive {
     pub keep_alive_id: i64,
+}
+
+#[derive(Debug, Codec)]
+pub struct BlockEntity {
+    pub packed_xz: i8,
+    pub y: i16,
+    pub block_entity_type: VarInt,
+    pub data: NBTValue,
+}
+
+#[derive(Debug, Codec)]
+pub struct ChunkDataAndUpdateLight {
+    pub chunk_x: i32,
+    pub chunk_z: i32,
+    pub heightmaps: NBTValue,
+    pub data: LengthPrefixByteArray,
+    pub num_block_ents: LengthPrefixArray<BlockEntity>,
+    pub trust_edges: bool,
+    pub sky_light_mask: BitSet,
+    pub block_light_mask: BitSet,
+    pub empty_sky_light_mask: BitSet,
+    pub empty_block_light_mask: BitSet,
+    pub sky_light_array: LengthPrefixArray<LightArray>,
+    pub block_light_array: LengthPrefixArray<LightArray>,
 }
 
 #[derive(Debug, Codec)]

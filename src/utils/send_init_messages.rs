@@ -1,6 +1,9 @@
+use std::collections::HashMap;
+
 use crate::boundary::message::OutboundMessage;
 use crate::data::compound::discrete_position::DiscretePosition;
-use crate::data::packets::play::{OutboundPlay, Login, PluginMessage, SetDefaultSpawnPosition, SetHeldItem, UpdateRecipes, UpdateTags, EntityEvent};
+use crate::data::compound::nbt::NBTValue;
+use crate::data::packets::play::{OutboundPlay, Login, PluginMessage, SetDefaultSpawnPosition, SetHeldItem, ChunkDataAndUpdateLight};
 use crate::simulation::resources::dimensions::Dimensions;
 use crate::simulation::resources::message_router::MessageRouter;
 use crate::data::base::*;
@@ -47,4 +50,30 @@ pub fn send_init_messages(uuid: Uuid, message_router: &MessageRouter, dimensions
         location: DiscretePosition { x: 0, y: 0, z: 0 },
         angle: 0.0,
     })));
+
+    let height_data = vec![0i64; 256];
+
+    height_data[0] = (2.0 + 1.0 as f32).log2().ceil() as i64;
+
+    let chunk_data: Vec<u8> = vec!(0x00, 0x01);
+
+    message_router.send_message(uuid, OutboundMessage::Play(OutboundPlay::ChunkDataAndUpdateLight(ChunkDataAndUpdateLight { 
+        chunk_x: 0, 
+        chunk_z: 0, 
+        heightmaps: NBTValue::Compound(HashMap::from([
+            (
+                "MOTION_BLOCKING".into(),
+                NBTValue::LongArray(height_data),
+            )
+        ])), 
+        data: LengthPrefixByteArray(vec!(0)), 
+        num_block_ents: (), 
+        trust_edges: (), 
+        sky_light_mask: (), 
+        block_light_mask: (), 
+        empty_sky_light_mask: (), 
+        empty_block_light_mask: (), 
+        sky_light_array: (), 
+        block_light_array: () 
+    })))
 }

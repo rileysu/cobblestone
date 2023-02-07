@@ -8,6 +8,7 @@ mod byte_array;
 mod array;
 mod option;
 mod float;
+mod bitset;
 
 pub use self::bool::*;
 pub use signed::*;
@@ -19,3 +20,4 @@ pub use byte_array::*;
 pub use array::*;
 pub use option::*;
 pub use float::*;
+pub use bitset::*;
