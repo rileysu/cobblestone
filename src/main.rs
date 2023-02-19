@@ -1,8 +1,8 @@
 mod connector;
 mod boundary;
-mod data;
+mod codec_data;
+mod generated;
 mod simulation;
-mod utils;
 
 use std::time::Duration;
 use connector::connection_handler::{ConnectionHandler};

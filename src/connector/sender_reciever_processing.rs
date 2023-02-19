@@ -1,6 +1,6 @@
 use std::io::Cursor;
-use crate::data::codec::{Codec, Error};
-use crate::data::packets::play::{InboundPlay};
+use crate::codec_data::codec::{Codec, Error};
+use crate::codec_data::packets::play::{InboundPlay};
 use crate::boundary::message::{OutboundMessage, InboundMessage};
 
 

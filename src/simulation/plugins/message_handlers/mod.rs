@@ -3,7 +3,7 @@ use bevy::{prelude::*, time::FixedTimestep};
 
 use self::{
     connection::{init_connection_handler, term_connection_handler},
-    keep_alive::{keep_alive, KeepAliveStage},
+    keep_alive::{keep_alive_sender, KeepAliveStage, keep_alive_response_handler},
     movement::movement_handler,
     plugin_communication::plugin_communication_handler,
 };
@@ -32,6 +32,7 @@ impl Plugin for MessageHandlersPlugin {
         app.add_system_to_stage(CoreStage::PreUpdate, get_messages)
             .add_system(init_connection_handler)
             .add_system(plugin_communication_handler)
+            .add_system(keep_alive_response_handler)
             .add_system(movement_handler)
             .add_system(term_connection_handler)
             .add_stage_after(
@@ -39,7 +40,7 @@ impl Plugin for MessageHandlersPlugin {
                 KeepAliveStage,
                 SystemStage::parallel().with_run_criteria(FixedTimestep::step(8.0)),
             )
-            .add_system_to_stage(KeepAliveStage, keep_alive)
+            .add_system_to_stage(KeepAliveStage, keep_alive_sender)
             .add_system_to_stage(CoreStage::PostUpdate, clear_messages);
     }
 }

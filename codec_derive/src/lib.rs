@@ -21,8 +21,8 @@ pub fn derive_codec(input: TokenStream) -> TokenStream {
             let field_types: Vec<Type> = named_fields.named.iter().map(|x| x.ty.clone()).collect();
 
             let expanded = quote!{
-                impl codec::Codec for #ident {
-                    fn decode(buf: &mut (impl std::io::Read + std::io::Seek)) -> codec::Result<Self> {
+                impl crate::codec_data::codec::Codec for #ident {
+                    fn decode(buf: &mut (impl std::io::Read + std::io::Seek)) -> crate::codec_data::codec::Result<Self> {
                         Ok(Self {
                             #(
                                 #field_idents: <#field_types>::decode(buf)?
@@ -30,7 +30,7 @@ pub fn derive_codec(input: TokenStream) -> TokenStream {
                         })
                     }
         
-                    fn encode(&self, buf: &mut impl std::io::Write) -> codec::Result<()> {
+                    fn encode(&self, buf: &mut impl std::io::Write) -> crate::codec_data::codec::Result<()> {
                         #(
                             <#field_types>::encode(&self.#field_idents, buf)?;
                         )*
@@ -47,8 +47,8 @@ pub fn derive_codec(input: TokenStream) -> TokenStream {
             let field_types: Vec<Type> = unnamed_fields.unnamed.iter().map(|x| x.ty.clone()).collect();
 
             let expanded = quote!{
-                impl codec::Codec for #ident {
-                    fn decode(buf: &mut (impl std::io::Read + std::io::Seek)) -> codec::Result<Self> {
+                impl crate::codec_data::codec::Codec for #ident {
+                    fn decode(buf: &mut (impl std::io::Read + std::io::Seek)) -> crate::codec_data::codec::Result<Self> {
                         Ok(Self(
                             #(
                                 <#field_types>::decode(buf)?
@@ -56,7 +56,7 @@ pub fn derive_codec(input: TokenStream) -> TokenStream {
                         ))
                     }
         
-                    fn encode(&self, buf: &mut impl std::io::Write) -> codec::Result<()> {
+                    fn encode(&self, buf: &mut impl std::io::Write) -> crate::codec_data::codec::Result<()> {
                         let Self(#(#field_idents),*) = self;
                         
                         #(
@@ -72,12 +72,12 @@ pub fn derive_codec(input: TokenStream) -> TokenStream {
         },
         Fields::Unit => {
             let expanded = quote!{
-                impl codec::Codec for #ident {
-                    fn decode(buf: &mut (impl std::io::Read + std::io::Seek)) -> codec::Result<Self> {
+                impl crate::codec_data::codec::Codec for #ident {
+                    fn decode(buf: &mut (impl std::io::Read + std::io::Seek)) -> crate::codec_data::codec::Result<Self> {
                         Ok(Self)
                     }
         
-                    fn encode(&self, buf: &mut impl std::io::Write) -> codec::Result<()> {
+                    fn encode(&self, buf: &mut impl std::io::Write) -> crate::codec_data::codec::Result<()> {
                         Ok(())
                     }
                 }

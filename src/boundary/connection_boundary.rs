@@ -1,7 +1,7 @@
 use tokio::sync::mpsc;
-use crate::data::base::Uuid;
+use crate::codec_data::base::Uuid;
 
-use super::message::{IdentifiedInboundMessage, InboundMessage, OutboundMessage};
+use super::message::{InboundMessage, OutboundMessage};
 
 pub struct SenderConnectionBoundary {
     //Personal rx channel from main to the connection
@@ -23,22 +23,19 @@ impl SenderConnectionBoundary {
 pub struct RecieverConnectionBoundary {
     //Shared channel for messages to main
     uuid: Uuid,
-    messages_tx: mpsc::UnboundedSender<IdentifiedInboundMessage>,
+    messages_tx: mpsc::UnboundedSender<(Uuid, InboundMessage)>,
 }
 
 impl RecieverConnectionBoundary {
-    pub fn new(uuid: Uuid, messages_tx: mpsc::UnboundedSender<IdentifiedInboundMessage>) -> Self {
+    pub fn new(uuid: Uuid, messages_tx: mpsc::UnboundedSender<(Uuid, InboundMessage)>) -> Self {
         Self {
             uuid,
             messages_tx,
         }
     }
 
-    pub fn send_message(&self, message: InboundMessage) -> Result<(), mpsc::error::SendError<IdentifiedInboundMessage>>{
-        self.messages_tx.send(IdentifiedInboundMessage {
-            uuid: self.uuid,
-            message
-        })
+    pub fn send_message(&self, message: InboundMessage) -> Result<(), mpsc::error::SendError<(Uuid, InboundMessage)>>{
+        self.messages_tx.send((self.uuid, message))
     }
 }
 

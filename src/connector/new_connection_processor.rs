@@ -2,7 +2,7 @@ use std::io::{Cursor};
 
 use serde_json::json;
 
-use crate::data::{
+use crate::codec_data::{
     base::{VarInt, Uuid, LengthPrefixArray},
     codec::Codec,
     packets::{

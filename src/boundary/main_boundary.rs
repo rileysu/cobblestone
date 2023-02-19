@@ -1,19 +1,19 @@
 use tokio::sync::mpsc;
 use tokio::sync::mpsc::error::TryRecvError;
 use std::{collections::HashMap};
-use crate::data::base::Uuid;
+use crate::codec_data::base::Uuid;
 
-use super::message::{OutboundMessage, IdentifiedInboundMessage, InboundMessage, IdentifiedChannel};
+use super::message::{OutboundMessage, InboundMessage};
 
 #[derive(Debug)]
 pub struct MainBoundary {
     messages_txs: HashMap<Uuid, mpsc::UnboundedSender<OutboundMessage>>,
-    messages_rx: mpsc::UnboundedReceiver<IdentifiedInboundMessage>,
-    channel_rx: mpsc::UnboundedReceiver<IdentifiedChannel>,
+    messages_rx: mpsc::UnboundedReceiver<(Uuid, InboundMessage)>,
+    channel_rx: mpsc::UnboundedReceiver<(Uuid, mpsc::UnboundedSender<OutboundMessage>)>,
 }
 
 impl MainBoundary {
-    pub fn new(messages_rx: mpsc::UnboundedReceiver<IdentifiedInboundMessage>, channel_rx: mpsc::UnboundedReceiver<IdentifiedChannel>) -> Self {
+    pub fn new(messages_rx: mpsc::UnboundedReceiver<(Uuid, InboundMessage)>, channel_rx: mpsc::UnboundedReceiver<(Uuid, mpsc::UnboundedSender<OutboundMessage>)>) -> Self {
         Self {
             messages_txs: HashMap::new(),
             messages_rx,
@@ -29,28 +29,28 @@ impl MainBoundary {
         self.messages_txs.remove(uuid);
     }
 
-    pub fn recieve_message(&mut self) -> Option<IdentifiedInboundMessage> {
+    pub fn recieve_message(&mut self) -> Option<(Uuid, InboundMessage)> {
         match self.channel_rx.try_recv() {
-            Ok(ident_channel) => {
-                self.register_sender(ident_channel.uuid, ident_channel.channel);
+            Ok((uuid, channel)) => {
+                self.register_sender(uuid, channel);
 
-                return Some(IdentifiedInboundMessage { uuid: ident_channel.uuid, message: InboundMessage::InitConnection })
+                return Some((uuid, InboundMessage::InitConnection))
             },
             Err(TryRecvError::Empty) => {},
             Err(TryRecvError::Disconnected) => panic!("Main's reciever channel has been disconnected!"),
         }
 
         match self.messages_rx.try_recv() {
-            Ok(ident_message) => {
-                match ident_message.message {
+            Ok((uuid, message)) => {
+                match message {
                     InboundMessage::InitConnection => {
-                        Some(ident_message)
+                        Some((uuid, message))
                     },
-                    InboundMessage::Play(_) => Some(ident_message),
+                    InboundMessage::Play(_) => Some((uuid, message)),
                     InboundMessage::TermConnection => {
-                        self.remove_sender(&ident_message.uuid);
+                        self.remove_sender(&uuid);
 
-                        Some(ident_message)
+                        Some((uuid, message))
                     },
                 }
 
@@ -61,7 +61,7 @@ impl MainBoundary {
         }
     }
 
-    pub fn recieve_all_messages(&mut self) -> Vec<IdentifiedInboundMessage> {
+    pub fn recieve_all_messages(&mut self) -> Vec<(Uuid, InboundMessage)> {
         let mut out = Vec::new();
 
         while let Some(message) = self.recieve_message() {

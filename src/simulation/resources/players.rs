@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use bevy::prelude::*;
 
-use crate::data::base::Uuid;
+use crate::codec_data::base::Uuid;
 
 #[derive(Resource)]
 pub struct Players(pub HashMap<Uuid, Entity>);
@@ -22,7 +22,7 @@ impl Players {
         }
     }
 
-    pub fn get_entity(&mut self, uuid: Uuid) -> Option<Entity> {
+    pub fn get_entity(&self, uuid: Uuid) -> Option<Entity> {
         self.0.get(&uuid).copied()
     }
 }

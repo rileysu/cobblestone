@@ -8,7 +8,7 @@ use crate::boundary::BoundaryFactory;
 use crate::boundary::connection_boundary::{RecieverConnectionBoundary, SenderConnectionBoundary};
 use crate::boundary::main_boundary::MainBoundary;
 use crate::boundary::message::InboundMessage;
-use crate::data::base::Uuid;
+use crate::codec_data::base::Uuid;
 use super::new_connection_processor::{NewConnectionProcessor};
 use super::sender_reciever_processing;
 
